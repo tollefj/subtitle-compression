@@ -1,7 +1,27 @@
 import evaluate
 import numpy as np
 import torch
+
+# Create a sentence-transformer evaluation pipeline with e5-multilingual model
+# from sentence_transformers import SentenceTransformer
+# from sklearn.metrics.pairwise import cosine_similarity
 from tqdm import tqdm
+
+# class SentenceEval:
+#     def __init__(self, model_name="intfloat/multilingual-e5-base") -> None:
+#         self.model = SentenceTransformer(model_name)
+#         self.references = None
+
+#     def load_reference(self, references):
+#         self.references = self.model.encode(references)
+
+#     def compute(self, predictions):
+#         emb_pred = self.model.encode(predictions)
+#         # compute cosine sim between predictions and references
+#         sims = cosine_similarity(emb_pred, self.references)
+#         if len(sims) == 1:
+#             sims = sims[0]
+#         return sims
 
 
 class Evaluator:
@@ -94,9 +114,6 @@ class Evaluator:
         }
         result = {k + metric_suffix: v for k, v in result.items()}
 
-        # create a length penalty that penalizes longer translations
-        # it should be *shorter or the same* than the length of the reference
-
         length_ratios = [
             len(pred) / len(ref) for pred, ref in zip(predictions, references)
         ]
@@ -130,7 +147,6 @@ class Evaluator:
             print(baseline_metrics)
             print("__" * 30)
 
-            # convert to a string instead of printing, so we can save it to a log file:
             return
 
     def get_csv_data(self, predictions, references, source, baselines, lang):
@@ -142,6 +158,8 @@ class Evaluator:
                 "Baseline",
                 "Metrics",
                 "Baseline Metrics",
+                # "Lead10",
+                # "Grounded",
             ]
         ]
 
