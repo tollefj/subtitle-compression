@@ -15,7 +15,7 @@ def load_model(
     return model, tokenizer
 
 
-def load_baseline(model_id="Helsinki-NLP/opus-mt-en-gmq", device="cuda"):
+def load_baseline(model_id, device="cuda"):
     baseline_model = MarianMTModel.from_pretrained(model_id).to(device)
     baseline_tokenizer = MarianTokenizer.from_pretrained(model_id)
     return baseline_model, baseline_tokenizer

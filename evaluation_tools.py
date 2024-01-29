@@ -1,9 +1,12 @@
+from typing import Callable, List
+
 import numpy as np
 import pandas as pd
 from IPython.display import HTML, display
 
-from config import COMPRESSION_RATIOS, get_prefix
-from utils.model_utils import load_model, translate_all
+from config import COMPRESSION_RATIOS, OPUS_MT_MODELS, prefixes
+from evaluation.evaluator import Evaluator
+from utils.model_utils import load_baseline, load_model, translate_all
 
 
 def filter_metrics(metrics):
@@ -52,21 +55,46 @@ def print_metrics(_lang, _metrics):
     display(tmpdf)
 
 
+def get_metrics(
+    languages: List[str],
+    datagetter: Callable,
+    n_samples: int = 1000,
+    device: str = "cuda",
+):
+    metrics_by_lang = {}
+    all_translations = {}
+
+    for lang in languages:
+        _metrics, _translations = get_language_metrics(
+            source_lang="en",
+            target_lang=lang,
+            datagetter=datagetter,
+            n_samples=n_samples,
+            device=device,
+        )
+        metrics_by_lang[lang] = _metrics
+        all_translations[lang] = _translations
+
+    return metrics_by_lang, all_translations
+
+
 def get_language_metrics(
     source_lang,
     target_lang,
     datagetter,
-    baseline_model,
-    baseline_tokenizer,
-    evaluator,
     n_samples=1000,
+    device="cuda",
 ):
     lang1 = source_lang
     lang = target_lang
     print(f"Getting metrics for {lang}")
 
+    evaluator = Evaluator()
+
+    model_id = OPUS_MT_MODELS[lang]
+    baseline_model, baseline_tokenizer = load_baseline(model_id, device=device)
+
     test_df = datagetter(source_lang, lang)
-    test_df = test_df.sample(n=n_samples)
     ###### Normalize
     src_len = test_df[lang1].str.len()
     tgt_len = test_df[lang].str.len()
@@ -78,16 +106,19 @@ def get_language_metrics(
         test_df[lang].str.len() < mean_len * test_df[lang1].str.len()
     ]
     print(f"Size of test set after compression: {len(test_df)}")
+    sample_size = min(n_samples, len(test_df))
+    test_df = test_df.sample(n=sample_size)
+
     tar_texts = test_df[lang].tolist()
     src_texts = test_df[lang1].tolist()
-    prefix = get_prefix(lang)
+    prefix = prefixes.get(lang, "")
     src_texts = [f"{prefix} {s}".strip() for s in src_texts]
 
     baseline_translations = translate_all(
         src_texts,
         baseline_model,
         baseline_tokenizer,
-        device="cuda",
+        device=device,
         batch_size=64,
     )
 
@@ -114,3 +145,35 @@ def get_language_metrics(
         metrics[compression_ratio] = comp_metrics
 
     return metrics, translations
+
+
+# if run with bootstrap sampling
+# combined = {}  #
+# for run in all_metrics:
+#     for key in all_metrics[run]:
+#         if key not in combined:
+#             combined[key] = {}
+#         for metric in all_metrics[run][key]:
+#             if metric not in combined[key]:
+#                 combined[key][metric] = []
+#             combined[key][metric].append(all_metrics[run][key][metric])
+
+# avg = {}
+# std = {}
+
+# for key in combined:
+#     avg[key] = {}
+#     std[key] = {}
+#     for metric in combined[key]:
+#         avg[key][metric] = np.round(np.mean(combined[key][metric]), 2)
+#         std[key][metric] = np.round(np.std(combined[key][metric]), 2)
+
+# # combine the average and std into a single dataframe
+# avg_df = pd.DataFrame(avg).T
+# # do a reverse-weighing based on len_ratio
+# # all metrics should be divided by len_ratio
+# # for row in avg_df.index:
+# #     avg_df.loc[row] = avg_df.loc[row] / avg_df.loc[row]["len_ratio"]
+# #     avg_df.loc[row] = np.round(avg_df.loc[row], 2)
+# avg_df = avg_df.sort_values(by="meteor", ascending=False)
+# avg_df
