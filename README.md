@@ -6,7 +6,7 @@ Download data from OpenSub/EuroParl from the `/data` folder. Each folder has sep
 
 Fine-tuning of models can be seen in `finetune.py`. 
 
-Printouts of experiments on both in-domain (opensubtitles) and out-of-domain (europarl) are in their respective jupyter notebooks in the root dir. See a temporary sample below. Note that the data is randomly sampled from the original distribution, which favors higher compression ratios. However, it is applicable as real-world data.
+Printouts of experiments on both in-domain (opensubtitles) and out-of-domain (europarl) are in their respective jupyter notebooks in the root dir. See a temporary sample below. Note that the data is randomly sampled from the original distribution, which favors higher compression ratios. However, it is applicable as real-world data. See the BBT dataset used for empirical evaluation in the paper under `evaluation/BBT`.
 
 ## OpenSubtitles - French
 <div>
